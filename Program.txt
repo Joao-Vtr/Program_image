@@ -1,0 +1,218 @@
+from PIL import Image
+import matplotlib.pyplot as plt
+import numpy as np
+import sys
+import math as m
+def main():
+    name = "test 6 and reference_3"
+    name_image = name + '.png'
+    name_text = name + '.txt'
+    plt.rcParams['figure.figsize'] = [15,10]
+    I = Image.open(name_image)
+    A = np.asarray(I)
+    Ax = np.shape(A)[0]
+    Ay = np.shape(A)[1]
+    B = np.ones(Ax*Ay*3).reshape(Ax,Ay,3).astype(int)
+    for i in range(Ax):
+        for j in range(Ay):
+            B[i,j,0] = A[i,j,0]
+            B[i,j,1] = A[i,j,1]
+            B[i,j,2] = A[i,j,2]
+    Im = contrast(B,Ax,Ay)
+    Im = points_graph(Im,Ax,Ay)
+    Im = trim(Im,Ax,Ay)
+    x = np.shape(Im)[0]
+    y = np.shape(Im)[1]
+    Im2 = Im.copy()
+    Im2 = points_center(Im2,x,y)
+    X0,Y0,R0 = center(Im2,x,y)
+    R = np.zeros(1)
+    theta = R.copy()
+    count = 1
+    T = open(name_text,'w')
+    for i in range(x):
+        for j in range(y):
+            if (Im[i,j]==np.array([0,0,255])).all()==True:
+                X = float(i)-X0
+                Y = float(j)-Y0
+                r = ((X**2)+(Y**2))**0.5
+                r *= 22.5/R0
+                a = m.atan2(Y,X)
+                R = np.insert(R,count,r,0)
+                theta = np.insert(theta,count,a,0)
+                count += 1
+                T.write(str(a))
+                T.write(' ')
+                T.write(str(r))
+                T.write('\n')
+    T.close()
+    R = np.delete(R,0,0)
+    theta = np.delete(theta,0,0)
+    plt.plot(theta,R,'.')
+    plt.show()
+    plt.axis("off")
+    plt.imshow(Im)
+###############################################################################
+def contrast(Im,x,y):
+    for i in range(x):
+        for j in range(y):
+            if Im[i,j,0]<60 and Im[i,j,1]<60 and Im[i,j,2]<60:
+                Im[i,j,0] = 0
+                Im[i,j,1] = 0
+                Im[i,j,2] = 0
+            elif Im[i,j,0]>61 and Im[i,j,1]>61 and Im[i,j,2]>61:
+                Im[i,j,0] = 255
+                Im[i,j,1] = 255
+                Im[i,j,2] = 255
+            else:
+                Im[i,j,0] = 255
+                Im[i,j,1] = 0
+                Im[i,j,2] = 0
+    return(Im)
+###############################################################################
+def points_graph(Im,x,y):
+    Bk = np.array([0,0,0]).astype(float)
+    B = np.array([0,0,255]).astype(float)
+    k = m.floor(y/2)
+    for i in range(x):
+        continue1=True
+        continue2=True
+        j = 1
+        while j<k:
+            if (Im[i,j]==Bk).all()==False and (Im[i,j-1]==Bk).all()==True and continue1 == True:
+                Im[i,j] = B
+                continue1 = False
+            if (Im[i,y-j-1]==Bk).all()==False and (Im[i,y-j]==Bk).all()==True and continue2 == True:
+                Im[i,y-j-1] = B
+                continue2 = False 
+            j+=1
+############################################
+    k = m.floor(x/2)
+    for j in range(y):
+        continue1=True
+        continue2=True
+        i = 1
+        while i<k:
+            if (Im[i,j]==Bk).all()==False and (Im[i-1,j]==Bk).all()==True and continue1 == True:
+                Im[i,j] = B
+                continue1 = False
+            if (Im[x-i-1,j]==Bk).all()==False and (Im[x-i,j]==Bk).all()==True and continue2 == True:
+                Im[x-i-1,j] = B
+                continue2 = False 
+            i+=1
+    return(Im)
+###############################################################################
+def trim(Im,x,y):
+    i = 0
+    while i < x:
+        cut = True
+        for j in range(y):
+            if Im[i,j,0]>0 or Im[i,j,1]>0 or Im[i,j,2]>0:
+                cut = False
+        if cut == True:
+            Im = np.delete(Im,i,0)
+            x-=1
+            i-=1
+        i+=1
+    j = 0
+#################################
+    while j < y:
+        cut = True
+        for i in range(x):
+            if Im[i,j,0]>0 or Im[i,j,1]>0 or Im[i,j,2]>0:
+                cut = False
+        if cut == True:
+            Im = np.delete(Im,j,1)
+            y-=1
+            j-=1
+        j+=1
+    return(Im)
+###############################################################################
+def points_center(Im,x,y):
+    k = m.floor(y/2)
+    interval = m.floor(x/20)
+    for i in range(x):
+        if interval<i<(x-interval):
+            continuar1=True
+            continuar2=True
+            j = 1
+            while j<k:
+                if Im[i,k-j,0]==255 and Im[i,k-j+1,0]==0 and continuar1 == True:
+                    Im[i,k-j,0] = 0
+                    Im[i,k-j,1] = 255
+                    continuar1 = False
+                if Im[i,j+k,0]==255 and Im[i,j+k-1,0]==0 and continuar2 == True:
+                    Im[i,j+k,0] = 0
+                    Im[i,j+k,1] = 255
+                    continuar2 = False 
+                j+=1
+#####################################
+        j = 0
+        k = m.floor(x/2)
+        interval = m.floor(y/20)
+    for j in range(y):
+        if interval<j<(y-interval):
+            continuar1=True
+            continuar2=True
+            i = 1
+            while i<k:
+                if Im[k-i,j,0]==255 and Im[k-i+1,j,0]==0 and continuar1 == True:
+                    Im[k-i,j,0] = 0
+                    Im[k-i,j,1] = 255
+                    continuar1 = False
+                if Im[i+k,j,0]==255 and Im[i+k-1,j,0]==0 and continuar2 == True:
+                    Im[i+k,j,0] = 0
+                    Im[i+k,j,1] = 255
+                    continuar2 = False 
+                i+=1
+    return(Im)
+###############################################################################
+def center(Im,Nx,Ny):
+    listy = np.zeros(1)
+    count = 1
+    for i in range(Nx):
+        n = 0
+        y = 0
+        for j in range(Ny):
+            if Im[i,j,0] == 0 and Im[i,j,1] == 255:
+                n += 1
+                y += j
+        if n == 1 or n == 2:
+            listy = np.insert(listy,count,y/n,0)
+            count += 1
+    N = np.shape(listy)[0]
+    N -= 1
+    Y0 = np.sum(listy)/N
+########################################################
+    listx = np.zeros(1)
+    count = 1
+    for j in range(Ny):
+        n = 0
+        x = 0
+        for i in range(Nx):
+            if Im[i,j,0] == 0 and Im[i,j,1] == 255:
+                n += 1
+                x += i
+        if n == 1 or n == 2:
+            listx = np.insert(listx,count,x/n,0)
+            count += 1
+    N = np.shape(listx)[0]
+    N -= 1
+    X0 = np.sum(listx)/N
+#######################################################
+    R = np.zeros(1)
+    M = 1
+    for i in range(Nx):
+        for j in range(Ny):
+            if (Im[i,j]==np.array([0,255,0])).all()==True:
+                X = float(i)-X0
+                Y = float(j)-Y0
+                r = ((X**2)+(Y**2))**0.5
+                R = np.insert(R,M,r,0)
+                M += 1
+    R = np.delete(R,0,0)
+    N = np.shape(R)[0]
+    R0 = np.sum(R)/N
+    return(X0,Y0,R0)
+###############################################################################
+main()
